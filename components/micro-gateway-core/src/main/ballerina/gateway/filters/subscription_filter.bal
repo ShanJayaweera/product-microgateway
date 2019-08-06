@@ -19,6 +19,7 @@ import ballerina/auth;
 import ballerina/internal;
 import ballerina/log;
 import ballerina/io;
+import ballerina/observe;
 
 // Subscription filter to validate the subscriptions which is available in the  jwt token
 // This filter should only be engaged when jwt token is is used for authentication. For oauth2
@@ -27,10 +28,14 @@ public type SubscriptionFilter object {
 
     public function filterRequest(http:Caller caller, http:Request request, http:FilterContext filterContext)
                         returns boolean {
+        //Start a span attaching to the system span.
+        int|error|() spanId_req = startingSpan("Subscription_FilterRequest");
         int startingTime = getCurrentTime();
         checkOrSetMessageID(filterContext);
         boolean result = doSubscriptionFilterRequest(caller, request, filterContext);
         setLatency(startingTime, filterContext, SECURITY_LATENCY_SUBS);
+        //Finish span.
+        finishingSpan("Subscription_FilterRequest", spanId_req);
         return result;
     }
 
@@ -52,7 +57,6 @@ function doSubscriptionFilterRequest(http:Caller caller, http:Request request, h
     string jwtToken = runtime:getInvocationContext().authContext.authToken;
     string currentAPIContext = getContext(filterContext);
     AuthenticationContext authenticationContext = {};
-
     json|error decodedPayload = {};
     var cachedJwt = trap <auth:CachedJwt>jwtCache.get(jwtToken);
     if (cachedJwt is auth:CachedJwt) {
@@ -72,7 +76,6 @@ function doSubscriptionFilterRequest(http:Caller caller, http:Request request, h
         if(customClaims.hasKey(KEY_TYPE)) {
             payload.keytype = customClaims[KEY_TYPE];
         }
-
         payload.sub = jwtPayload["sub"];
         decodedPayload = payload;
     } else {
@@ -88,13 +91,16 @@ function doSubscriptionFilterRequest(http:Caller caller, http:Request request, h
             decodedPayload = getDecodedJWTPayload(jwtPayload);
         }
     }
-
     if(decodedPayload is json) {
         printTrace(KEY_SUBSCRIPTION_FILTER, "Decoded JWT payload: " + decodedPayload.toString());
         json subscribedAPIList = {};
         if (decodedPayload.subscribedAPIs != null){
             printDebug(KEY_SUBSCRIPTION_FILTER, "subscribedAPIs claim found in the jwt");
+            //Start a span attaching to the system span.
+            int|error|() spanId_req_1 = startingSpan("subscription_sub_Jsonconverting");
             subscribedAPIList = json.convert(decodedPayload.subscribedAPIs);
+            //Finish span.
+            finishingSpan("subscription_sub_Jsonconverting", spanId_req_1);
             printDebug(KEY_SUBSCRIPTION_FILTER, "Subscribed APIs list : " + subscribedAPIList.toString());
             APIConfiguration? apiConfig = apiConfigAnnotationMap[getServiceName(filterContext.serviceName)];
             int l = subscribedAPIList.length();
@@ -175,5 +181,6 @@ function doSubscriptionFilterRequest(http:Caller caller, http:Request request, h
         sendErrorResponse(caller, request, filterContext);
         return false;
     }
+    
 
 }

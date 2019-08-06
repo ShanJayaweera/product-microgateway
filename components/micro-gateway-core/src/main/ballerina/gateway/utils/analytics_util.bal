@@ -103,11 +103,20 @@ function populateFaultAnalyticsDTO(http:FilterContext context, error err) return
 }
 
 
+// function getAnalyticsEnableConfig() {
+// //     map<any> vals = getConfigMapValue(ANALYTICS);
+// //     isAnalyticsEnabled = <boolean>vals[ENABLE];getConfig(ANALTY)
+// //     rotatingTime =  <int> vals[ROTATING_TIME];
+// //     uploadingUrl = <string> vals[UPLOADING_EP];
+// //     configsRead = true;
+// //     printDebug(KEY_UTILS, "Analytics configuration values read");
+// // }
+
 function getAnalyticsEnableConfig() {
-    map<any> vals = getConfigMapValue(ANALYTICS);
-    isAnalyticsEnabled = <boolean>vals[ENABLE];
-    rotatingTime =  <int> vals[ROTATING_TIME];
-    uploadingUrl = <string> vals[UPLOADING_EP];
+    
+    isAnalyticsEnabled = getConfigBooleanValue(ANALYTICS, ENABLE, false);
+    rotatingTime =  getConfigIntValue(ANALYTICS, ROTATING_TIME, 600000);
+    uploadingUrl = getConfigValue(ANALYTICS, UPLOADING_EP, "https://localhost:9444/analytics/v1.0/usage/upload-file");
     configsRead = true;
     printDebug(KEY_UTILS, "Analytics configuration values read");
 }

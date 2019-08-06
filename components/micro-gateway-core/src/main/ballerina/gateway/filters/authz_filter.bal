@@ -23,6 +23,7 @@ import ballerina/runtime;
 import ballerina/time;
 import ballerina/io;
 import ballerina/reflect;
+import ballerina/observe;
 
 // authorization filter which wraps the ballerina in built authorization filter.
 
@@ -39,6 +40,9 @@ public type OAuthzFilter object {
     {
 
         string checkAuthentication = getConfigValue(MTSL_CONF_INSTANCE_ID, MTSL_CONF_SSLVERIFYCLIENT, "");
+        
+        //Start a new root span without attaching to the system span.
+        int|error|() spanId_req = startingSpan("Authz_FilterRequest");
 
         if (checkAuthentication != "require") {
             //Setting UUID
@@ -50,21 +54,39 @@ public type OAuthzFilter object {
             // scope validation is done in authn filter for oauth2, hence we only need to
             //validate scopes if auth scheme is jwt.
             if (authScheme == AUTH_SCHEME_JWT){
+                //Start a new child span for the span.
+                int|error|() childSpanId = startingSpan("Self.authzFilter");
                 result = self.authzFilter.filterRequest(caller, request, context);
+                //finishing span
+                finishingSpan("Self.authzFilter", childSpanId);
             }
             printDebug(KEY_AUTHZ_FILTER, "Returned with value: " + result);
             setLatency(startingTime, context, SECURITY_LATENCY_AUTHZ);
+
+            //Finish `MyRootParentSpan` span.
+            finishingSpan("Authz_FilterRequest", spanId_req);
             return result;
-        } else {
+        } 
+        else {
             // Skip this filter is mutualSSL is enabled.
+            //Finish `MyRootParentSpan` span.
+            finishingSpan("Authz_FilterRequest", spanId_req);
+
             return true;
         }
     }
 
     public function filterResponse(http:Response response, http:FilterContext context) returns boolean {
+        //Start a new root span without attaching to the system span.
+        int|error|() spanId_res = startingSpan("Authz_FilterResponse");
+
         int startingTime = getCurrentTime();
         boolean result = doAuthzFilterResponse(response, context);
         setLatency(startingTime, context, SECURITY_LATENCY_AUTHZ_RESPONSE);
+
+        //Finish `MyRootParentSpan` span.
+        finishingSpan("Authz_FilterResponse", spanId_res);
+
         return result;
     }
 

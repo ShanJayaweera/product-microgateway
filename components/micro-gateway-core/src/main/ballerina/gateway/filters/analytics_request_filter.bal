@@ -17,22 +17,36 @@
 import ballerina/io;
 import ballerina/http;
 import ballerina/time;
+import ballerina/observe;
 
 public type AnalyticsRequestFilter object {
 
     public function filterRequest(http:Caller caller, http:Request request, http:FilterContext context) returns boolean {
+        //Start a span attaching to the system span.
+        int|error|() spanId_req = startingSpan("Analytics_FilterRequest");
+        //starting a Gauge metric
+        observe:Gauge|() localGauge = gaugeInitializing("Request_Gauge", "RegisteredGauge", "time response", "Analytic");
         //Filter only if analytics is enabled.
         if (isAnalyticsEnabled) {
+            int startingTime = getCurrentTime();
             checkOrSetMessageID(context);
             context.attributes[PROTOCOL_PROPERTY] = caller.protocol;
             doFilterRequest(request, context);
+            float latency = setGaugeDuration(startingTime);
+            UpdatingGauge(localGauge, latency);
         }
+        //Finish span.
+        finishingSpan("Analytics_FilterRequest", spanId_req);
         return true;
     }
 
     public function filterResponse(http:Response response, http:FilterContext context) returns boolean {
-
+        //Start a span attaching to the system span.
+        int|error|() spanId_res = startingSpan("Analytics_FilterResponse");
+        //starting a Gauge metric
+        observe:Gauge|() localGauge = gaugeInitializing("Response_Gauge", "RegisteredGauge", "time response", "Analytic");
         if (isAnalyticsEnabled) {
+            int startingTime = getCurrentTime();
             boolean filterFailed = <boolean>context.attributes[FILTER_FAILED];
             if (context.attributes.hasKey(IS_THROTTLE_OUT)) {
                 boolean isThrottleOut = <boolean>context.attributes[IS_THROTTLE_OUT];
@@ -50,7 +64,11 @@ public type AnalyticsRequestFilter object {
                     doFilterAll(response, context);
                 }
             }
+            float latency = setGaugeDuration(startingTime);
+            UpdatingGauge(localGauge, latency);
         }
+        //Finish span.
+        finishingSpan("Analytics_FilterResponse", spanId_res);
         return true;
     }
 
@@ -86,3 +104,4 @@ function doFilterAll(http:Response response, http:FilterContext context) {
     //     doFilterFault(context, code);
     // }
 }
+

@@ -19,6 +19,7 @@ import ballerina/log;
 import ballerina/cache;
 import ballerina/config;
 import ballerina/time;
+import ballerina/observe;
 
 public type ThrottleFilter object {
     public map<boolean> deployedPolicies = {};
@@ -28,10 +29,18 @@ public type ThrottleFilter object {
     }
 
     public function filterRequest(http:Caller caller, http:Request request, http:FilterContext context) returns boolean {
+        //Start a span attaching to the system span.
+        int|error|() spanId_req = startingSpan("Throttle_FilterRequest");
+        //starting a Gauge metric
+        observe:Gauge|() localGauge = gaugeInitializing("Request_Gauge", "RegisteredGauge", "time response", "Throttle");
         int startingTime = getCurrentTime();
         checkOrSetMessageID(context);
         boolean result = doThrottleFilterRequest(caller, request, context, self.deployedPolicies);
         setLatency(startingTime, context, THROTTLE_LATENCY);
+        float latency = setGaugeDuration(startingTime);
+        UpdatingGauge(localGauge, latency);
+        //Finish span.
+        finishingSpan("Throttle_FilterRequest", spanId_req);
         return result;
     }
 

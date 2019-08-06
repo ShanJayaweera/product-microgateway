@@ -25,6 +25,7 @@ import ballerina/time;
 import ballerina/io;
 import ballerina/reflect;
 import ballerina/internal;
+import ballerina/observe;
 
 public int errorItem = 0;
 public string? requestPath = "";
@@ -48,17 +49,25 @@ public type ValidationFilter object {
 
     public function filterRequest(http:Caller caller, http:Request request, http:FilterContext filterContext)
                         returns boolean {
+        //Start a span attaching to the system span.
+        int|error|() spanId_req = startingSpan("Validation_FilterRequest");
         int startingTime = getCurrentTime();
         checkOrSetMessageID(filterContext);
         boolean result =  doValidationFilterRequest(caller, request, filterContext, self.openAPIs);
         setLatency(startingTime, filterContext, SECURITY_LATENCY_VALIDATION);
+        //Finish span.
+        finishingSpan("Validation_FilterRequest", spanId_req);
         return result;
     }
 
     public function filterResponse(http:Response response, http:FilterContext context) returns boolean {
+        //Start a span attaching to the system span.
+        int|error|() spanId_res = startingSpan("Validation_FilterResponse");
         int startingTime = getCurrentTime();
         boolean result = doValidationFilterResponse(response, context, self.openAPIs);
         setLatency(startingTime, context, SECURITY_LATENCY_VALIDATION);
+        //Finish span.
+        finishingSpan("Validation_FilterResponse", spanId_res);
         return result;
     }
 
@@ -68,12 +77,17 @@ function doValidationFilterRequest(http:Caller caller, http:Request request, htt
              returns boolean {
     if (enableRequestValidation) {
         printDebug(KEY_VALIDATION_FILTER, "The Request validation is enabled..");
+        //Start a span attaching to the system span.
+        int|error|() spanId_req = startingSpan("Getting Payload");
         //getting the payload of the request
         var payload = request.getJsonPayload();
+        //Finish span.
+        finishingSpan("Getting Payload", spanId_req);
         isType = false;
         string serviceName = getServiceName(filterContext.serviceName);
         APIConfiguration? apiConfig = apiConfigAnnotationMap[serviceName];
         json swagger = openAPIs[serviceName];
+        
         printDebug(KEY_VALIDATION_FILTER, "The swagger content found in map : " + swagger.toString());
         json model = {};
         json models = {};

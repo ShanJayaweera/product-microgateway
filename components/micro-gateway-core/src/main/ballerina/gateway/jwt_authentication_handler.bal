@@ -46,13 +46,23 @@ public function JwtAuthenticationHandler.canHandle(http:Request req) returns (bo
 }
 
 public function JwtAuthenticationHandler.handle(http:Request req) returns (boolean) {
+    //Start a span attaching to the system span.
+    int|error|() spanId_req = startingSpan("JwtAuthenticationHandler.handle");
     boolean handleVar;
+    //Start a new child span for the span.
+    int|error|() childSpanId = startingSpan("self.jwtAuthnHandler");
     handleVar = self.jwtAuthnHandler.handle(req);
+    //finishing span
+    finishingSpan("self.jwtAuthnHandler", childSpanId);
     if (handleVar) {
         boolean isBlacklisted = false;
         string? jti = "";
         string jwtToken = runtime:getInvocationContext().authContext.authToken;
+        //Start a new child span for the span.
+        int|error|() childSpanId_1 = startingSpan("jwtCache");
         var cachedJwt = trap <auth:CachedJwt>jwtCache.get(jwtToken);
+        //finishing span
+        finishingSpan("jwtCache", childSpanId_1);
         if (cachedJwt is auth:CachedJwt) {
             printDebug(KEY_JWT_AUTH_PROVIDER, "jwt found from the jwt cache");
             internal:JwtPayload jwtPayloadFromCache = cachedJwt.jwtPayload;
@@ -77,22 +87,32 @@ public function JwtAuthenticationHandler.handle(http:Request req) returns (boole
                 if (isBlacklisted) {
                     printDebug(KEY_JWT_AUTH_PROVIDER, "JWT Authentication Handler returned with value : " + !isBlacklisted);
                     printDebug(KEY_JWT_AUTH_PROVIDER, "JWT Token is revoked");
+                    //Finish span.
+                    finishingSpan("JwtAuthenticationHandler.handle", spanId_req);
                     return false;
                 } else {
+                    //Finish span.
+                    finishingSpan("JwtAuthenticationHandler.handle", spanId_req);
                     return true;
                 }
 
             } else {
                 printDebug(KEY_JWT_AUTH_PROVIDER, "jti claim not found in the jwt");
+                //Finish span.
+                finishingSpan("JwtAuthenticationHandler.handle", spanId_req);
                 return handleVar;
             }
 
         } else {
             printDebug(KEY_JWT_AUTH_PROVIDER, "jwt not found in the jwt cache");
+            //Finish span.
+            finishingSpan("JwtAuthenticationHandler.handle", spanId_req);
             return handleVar;
         }
 
     } else {
+        //Finish span.
+        finishingSpan("JwtAuthenticationHandler.handle", spanId_req);
         return handleVar;
     }
 }

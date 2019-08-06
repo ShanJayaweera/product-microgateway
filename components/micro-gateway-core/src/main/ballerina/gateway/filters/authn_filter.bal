@@ -23,6 +23,7 @@ import ballerina/system;
 import ballerina/time;
 import ballerina/io;
 import ballerina/reflect;
+import ballerina/observe;
 
 // Authentication filter
 
@@ -39,19 +40,40 @@ public type AuthnFilter object {
 
     public function filterRequest(http:Caller caller, http:Request request, http:FilterContext context)
                         returns boolean {
+        
+        //Start a span attaching to the system span.
+        int|error|() spanId_req = startingSpan("Authn_FilterRequest");
+        //starting a Gauge metric
+        observe:Gauge|() localGauge = gaugeInitializing("Request_Gauge", "RegisteredGauge", "time response", "Authentication");
         //Setting UUID
         if(request.mutualSslHandshake["status"] != PASSED) {
             int startingTime = getCurrentTime();
             context.attributes[REQUEST_TIME] = startingTime;
             checkOrSetMessageID(context);
+<<<<<<< Updated upstream
             setHostHeaderToFilterContext(request, context);
             boolean result = doAuthnFilterRequest(caller, request, untaint context, self.oauthAuthenticator, self.authnHandlerChain);
+=======
+            //Start a new child span for the span.
+            int|error|() childSpanId = startingSpan("DoAuthnFilterRequest_Function");
+            boolean result = doAuthnFilterRequest(caller, request, context, self.oauthAuthenticator, self.authnHandlerChain);
+            //finishing span
+            finishingSpan("DoAuthnFilterRequest_Function", childSpanId);
+>>>>>>> Stashed changes
             setLatency(startingTime, context, SECURITY_LATENCY_AUTHN);
-            return result;
-        } else {
+            float latency = setGaugeDuration(startingTime);
+            UpdatingGauge(localGauge, latency);
+            //Finish span.
+            finishingSpan("Authn_FilterRequest", spanId_req);
+            return result; 
+        } 
+        else {
             // Skip this filter is mutualSSL is enabled.
+            //Finish span.
+            finishingSpan("Authn_FilterRequest", spanId_req);
             return true;
         }
+        
 
     }
 

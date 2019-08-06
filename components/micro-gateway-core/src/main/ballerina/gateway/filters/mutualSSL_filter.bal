@@ -19,17 +19,22 @@ import ballerina/log;
 import ballerina/auth;
 import ballerina/config;
 import ballerina/io;
+import ballerina/observe;
 
 // MutualSSL filter
 public type MutualSSLFilter object {
 
     public function filterRequest(http:Caller caller, http:Request request, http:FilterContext context) returns boolean {
+        //Start a span attaching to the system span.
+        int|error|() spanId_req = startingSpan("MutualSSL_FilterRequest");
         int startingTime = getCurrentTime();
         checkOrSetMessageID(context);
         setHostHeaderToFilterContext(request, context);
         if(request.mutualSslHandshake["status"] == PASSED) {
             return doMTSLFilterRequest(caller, request, context);
         }
+        //Finish span.
+        finishingSpan("MutualSSL_FilterRequest", spanId_req);
         return true;
     }
 

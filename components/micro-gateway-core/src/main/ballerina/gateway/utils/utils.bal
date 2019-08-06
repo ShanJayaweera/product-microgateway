@@ -25,6 +25,7 @@ import ballerina/reflect;
 import ballerina/internal;
 import ballerina/system;
 import ballerina/encoding;
+import ballerina/observe;
 
 public map<reflect:annotationData[]> resourceAnnotationMap = {};
 public map<reflect:annotationData[]> serviceAnnotationMap = {};
