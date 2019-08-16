@@ -50,15 +50,8 @@ public type AuthnFilter object {
             int startingTime = getCurrentTime();
             context.attributes[REQUEST_TIME] = startingTime;
             checkOrSetMessageID(context);
-<<<<<<< Updated upstream
             setHostHeaderToFilterContext(request, context);
             boolean result = doAuthnFilterRequest(caller, request, untaint context, self.oauthAuthenticator, self.authnHandlerChain);
-=======
-            //Start a new child span for the span.
-            int|error|() childSpanId = startingSpan("DoAuthnFilterRequest_Function");
-            boolean result = doAuthnFilterRequest(caller, request, context, self.oauthAuthenticator, self.authnHandlerChain);
-            //finishing span
-            finishingSpan("DoAuthnFilterRequest_Function", childSpanId);
             setLatency(startingTime, context, SECURITY_LATENCY_AUTHN);
             float latency = setGaugeDuration(startingTime);
             UpdatingGauge(localGauge, latency);
