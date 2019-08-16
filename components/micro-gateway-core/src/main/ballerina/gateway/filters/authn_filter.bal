@@ -53,7 +53,7 @@ public type AuthnFilter object {
             context.attributes[REQUEST_TIME] = startingTime;
             checkOrSetMessageID(context);
             setHostHeaderToFilterContext(request, context);
-            boolean result = doAuthnFilterRequest(caller, request, context, self.oauthAuthenticator, self.authnHandlerChain);
+            boolean result = doAuthnFilterRequest(caller, request, untaint context, self.oauthAuthenticator, self.authnHandlerChain);
             setLatency(startingTime, context, SECURITY_LATENCY_AUTHN);
             float latency = setGaugeDuration(startingTime);
             UpdatingGauge(localGauge, latency);
