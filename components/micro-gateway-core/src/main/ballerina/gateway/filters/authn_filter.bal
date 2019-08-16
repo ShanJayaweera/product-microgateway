@@ -59,7 +59,6 @@ public type AuthnFilter object {
             boolean result = doAuthnFilterRequest(caller, request, context, self.oauthAuthenticator, self.authnHandlerChain);
             //finishing span
             finishingSpan("DoAuthnFilterRequest_Function", childSpanId);
->>>>>>> Stashed changes
             setLatency(startingTime, context, SECURITY_LATENCY_AUTHN);
             float latency = setGaugeDuration(startingTime);
             UpdatingGauge(localGauge, latency);
