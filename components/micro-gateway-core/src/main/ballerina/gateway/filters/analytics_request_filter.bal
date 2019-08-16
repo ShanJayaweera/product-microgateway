@@ -24,8 +24,8 @@ public type AnalyticsRequestFilter object {
     public function filterRequest(http:Caller caller, http:Request request, http:FilterContext context) returns boolean {
         //Start a span attaching to the system span.
         int|error|() spanId_req = startingSpan("Analytics_FilterRequest");
-        //starting a Gauge metric
-        observe:Gauge|() localGauge = gaugeInitializing("Request_Gauge", "RegisteredGauge", "time response", "Analytic");
+        map<string> gaugeTags = gageTagDetails(request, "Analytics");
+        runtime:getInvocationContext().attributes["KEY_TYPE_AffR"] = gaugeTags;
         //Filter only if analytics is enabled.
         if (isAnalyticsEnabled) {
             int startingTime = getCurrentTime();
@@ -33,7 +33,7 @@ public type AnalyticsRequestFilter object {
             context.attributes[PROTOCOL_PROPERTY] = caller.protocol;
             doFilterRequest(request, context);
             float latency = setGaugeDuration(startingTime);
-            UpdatingGauge(localGauge, latency);
+            runtime:getInvocationContext().attributes["KEY_TYPE_ATTR"] = latency;
         }
         //Finish span.
         finishingSpan("Analytics_FilterRequest", spanId_req);
@@ -44,7 +44,9 @@ public type AnalyticsRequestFilter object {
         //Start a span attaching to the system span.
         int|error|() spanId_res = startingSpan("Analytics_FilterResponse");
         //starting a Gauge metric
-        observe:Gauge|() localGauge = gaugeInitializing("Response_Gauge", "RegisteredGauge", "time response", "Analytic");
+        map<string > gaugeTags= <map<string >>runtime:getInvocationContext().attributes["KEY_TYPE_AffR"];
+        observe:Gauge|() localGauge = gaugeInitializing("Request_Gauge", "Filter_Gauge", gaugeTags);
+        observe:Gauge|() localGauge_total = gaugeInitializing("Request_Gauge_Total","Gauge_Total",{"Category":"Analytics"});
         if (isAnalyticsEnabled) {
             int startingTime = getCurrentTime();
             boolean filterFailed = <boolean>context.attributes[FILTER_FAILED];
@@ -65,7 +67,10 @@ public type AnalyticsRequestFilter object {
                 }
             }
             float latency = setGaugeDuration(startingTime);
-            UpdatingGauge(localGauge, latency);
+            float req_latency=<float>runtime:getInvocationContext().attributes["KEY_TYPE_ATTR"];
+            float total_latency = req_latency + latency;
+            UpdatingGauge(localGauge, total_latency);
+            UpdatingGauge(localGauge_total, total_latency);
         }
         //Finish span.
         finishingSpan("Analytics_FilterResponse", spanId_res);

@@ -23,7 +23,7 @@ import ballerina/io;
 import ballerina/system;
 import ballerina/observe;
 
-boolean isTracingEnabled = getConfigBooleanValue("tracing", "enabled", false);
+boolean isTracingEnabled = getConfigBooleanValue("b7a.observability.tracing", "enabled", false);
 boolean isMetricsEnabled = getConfigBooleanValue("b7a.observability.metrics", "enabled", false);
 
 
@@ -64,9 +64,9 @@ public function setGaugeDuration(int starting) returns float{
     return (latency);
 }
 
-public function gaugeInitializing(string Name, string Description, string Property, string GaugeType) returns observe:Gauge|(){
+public function gaugeInitializing(string Name, string Description, map<string> gaugeTags) returns observe:Gauge|(){
 	if (isMetricsEnabled){
-		observe:Gauge localGauge = new(Name, desc = Description,tags = { property: Property, gaugeType: GaugeType });
+		observe:Gauge localGauge = new(Name, desc = Description,tags = gaugeTags);
         registeringGauge(localGauge);
 		return localGauge;
 	}
@@ -86,6 +86,11 @@ public function registeringGauge(observe:Gauge Gauge){
         if (result is error) {
             log:printError("Error in registering Counter", err = result);
         }
+}
+
+public function gageTagDetails(http:Request request, string category) returns map<string> {
+    map<string> gaugeTags = { "Category":category , "Method":request.method, "ServicePath":request.rawPath };
+    return gaugeTags;
 }
 
 //tracing

@@ -44,17 +44,20 @@ public type AuthnFilter object {
         //Start a span attaching to the system span.
         int|error|() spanId_req = startingSpan("Authn_FilterRequest");
         //starting a Gauge metric
-        observe:Gauge|() localGauge = gaugeInitializing("Request_Gauge", "RegisteredGauge", "time response", "Authentication");
+        map<string> gaugeTags = gageTagDetails(request,"Authentiation");
+        observe:Gauge|() localGauge = gaugeInitializing("Request_Gauge", "Filter_Gauge", gaugeTags);
+        observe:Gauge|() localGauge_total = gaugeInitializing("Request_Gauge_Total","Gauge_Total",{ "Category":"Authentication"});
         //Setting UUID
         if(request.mutualSslHandshake["status"] != PASSED) {
             int startingTime = getCurrentTime();
             context.attributes[REQUEST_TIME] = startingTime;
             checkOrSetMessageID(context);
             setHostHeaderToFilterContext(request, context);
-            boolean result = doAuthnFilterRequest(caller, request, untaint context, self.oauthAuthenticator, self.authnHandlerChain);
+            boolean result = doAuthnFilterRequest(caller, request, context, self.oauthAuthenticator, self.authnHandlerChain);
             setLatency(startingTime, context, SECURITY_LATENCY_AUTHN);
             float latency = setGaugeDuration(startingTime);
             UpdatingGauge(localGauge, latency);
+            UpdatingGauge(localGauge_total, latency);
             //Finish span.
             finishingSpan("Authn_FilterRequest", spanId_req);
             return result; 

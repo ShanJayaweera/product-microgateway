@@ -32,13 +32,16 @@ public type ThrottleFilter object {
         //Start a span attaching to the system span.
         int|error|() spanId_req = startingSpan("Throttle_FilterRequest");
         //starting a Gauge metric
-        observe:Gauge|() localGauge = gaugeInitializing("Request_Gauge", "RegisteredGauge", "time response", "Throttle");
+        map<string> gaugeTags = gageTagDetails(request, "Throttling");
+        observe:Gauge|() localGauge = gaugeInitializing("Request_Gauge","Filter_Gauge", gaugeTags);
+        observe:Gauge|() localGauge_total = gaugeInitializing("Request_Gauge_Total","Gauge_Total",{ "Category":"Throttling"});
         int startingTime = getCurrentTime();
         checkOrSetMessageID(context);
         boolean result = doThrottleFilterRequest(caller, request, context, self.deployedPolicies);
         setLatency(startingTime, context, THROTTLE_LATENCY);
         float latency = setGaugeDuration(startingTime);
         UpdatingGauge(localGauge, latency);
+        UpdatingGauge(localGauge_total, latency);
         //Finish span.
         finishingSpan("Throttle_FilterRequest", spanId_req);
         return result;

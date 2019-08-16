@@ -101,6 +101,8 @@ sed -i".back" "s/-Xms[0-9]*m/-Xms$JAVA_XMS_VALUE/" $BALLERINA_HOME/bin/ballerina
 sed -i".back" "s/-Xmx[0-9]*m/-Xmx$JAVA_XMX_VALUE/" $BALLERINA_HOME/bin/ballerina
 rm $BALLERINA_HOME/bin/ballerina.back
 
+export JAVA_OPTS="-javaagent:/home/shan/new_mgw/wso2am-micro-gw-linux-3.0.2-SNAPSHOT/bin/jmx_prometheus_javaagent-0.12.0.jar=8080:/home/shan/new_mgw/wso2am-micro-gw-linux-3.0.2-SNAPSHOT/bin/config.yml"
+
 if [ "$CMD" = "start" ]; then
   if [ -e "$GWHOME/bin/gateway.pid" ]; then
     if  ps -p $PID > /dev/null ; then
