@@ -88,8 +88,8 @@ public function registeringGauge(observe:Gauge Gauge){
         }
 }
 
-public function gageTagDetails(http:Request request, string category) returns map<string> {
-    map<string> gaugeTags = { "Category":category , "Method":request.method, "ServicePath":request.rawPath };
+public function gageTagDetails(http:Request request, http:FilterContext context, string category) returns map<string> {
+    map<string> gaugeTags = { "Category":category , "Method":request.method, "ServicePath":request.rawPath, "Service": context.serviceName};
     return gaugeTags;
 }
 

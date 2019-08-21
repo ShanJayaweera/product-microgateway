@@ -24,8 +24,8 @@ public type AnalyticsRequestFilter object {
     public function filterRequest(http:Caller caller, http:Request request, http:FilterContext context) returns boolean {
         //Start a span attaching to the system span.
         int|error|() spanId_req = startingSpan("Analytics_FilterRequest");
-        map<string> gaugeTags = gageTagDetails(request, "Analytics");
-        runtime:getInvocationContext().attributes["KEY_TYPE_AffR"] = gaugeTags;
+        map<string> gaugeTags = gageTagDetails(request, context, "Analytics");
+        runtime:getInvocationContext().attributes["ANALYTIC_GAUGE"] = gaugeTags;
         //Filter only if analytics is enabled.
         if (isAnalyticsEnabled) {
             int startingTime = getCurrentTime();
@@ -33,7 +33,7 @@ public type AnalyticsRequestFilter object {
             context.attributes[PROTOCOL_PROPERTY] = caller.protocol;
             doFilterRequest(request, context);
             float latency = setGaugeDuration(startingTime);
-            runtime:getInvocationContext().attributes["KEY_TYPE_ATTR"] = latency;
+            runtime:getInvocationContext().attributes["ANALYTIC_REQUEST_TIME"] = latency;
         }
         //Finish span.
         finishingSpan("Analytics_FilterRequest", spanId_req);
@@ -44,7 +44,7 @@ public type AnalyticsRequestFilter object {
         //Start a span attaching to the system span.
         int|error|() spanId_res = startingSpan("Analytics_FilterResponse");
         //starting a Gauge metric
-        map<string > gaugeTags= <map<string >>runtime:getInvocationContext().attributes["KEY_TYPE_AffR"];
+        map<string > gaugeTags= <map<string >>runtime:getInvocationContext().attributes["ANALYTIC_GAUGE"];
         observe:Gauge|() localGauge = gaugeInitializing("Request_Gauge", "Filter_Gauge", gaugeTags);
         observe:Gauge|() localGauge_total = gaugeInitializing("Request_Gauge_Total","Gauge_Total",{"Category":"Analytics"});
         if (isAnalyticsEnabled) {
@@ -67,7 +67,7 @@ public type AnalyticsRequestFilter object {
                 }
             }
             float latency = setGaugeDuration(startingTime);
-            float req_latency=<float>runtime:getInvocationContext().attributes["KEY_TYPE_ATTR"];
+            float req_latency=<float>runtime:getInvocationContext().attributes["ANALYTIC_REQUEST_TIME"];
             float total_latency = req_latency + latency;
             UpdatingGauge(localGauge, total_latency);
             UpdatingGauge(localGauge_total, total_latency);
