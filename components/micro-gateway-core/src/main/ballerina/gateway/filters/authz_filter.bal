@@ -41,8 +41,8 @@ public type OAuthzFilter object {
 
         string checkAuthentication = getConfigValue(MTSL_CONF_INSTANCE_ID, MTSL_CONF_SSLVERIFYCLIENT, "");
         
-        //Start a new root span without attaching to the system span.
-        int|error|() spanId_req = startingSpan("Authz_FilterRequest");
+        //Start a new root span attaching to the system span.
+        int|error|() spanId_req = startingSpan(AUTHZ_FILTER_REQUEST);
 
         if (checkAuthentication != "require") {
             //Setting UUID
@@ -55,22 +55,22 @@ public type OAuthzFilter object {
             //validate scopes if auth scheme is jwt.
             if (authScheme == AUTH_SCHEME_JWT){
                 //Start a new child span for the span.
-                int|error|() childSpanId = startingSpan("Self.authzFilter");
+                int|error|() childSpan_Req = startingSpan(BALLERINA_AUTHZ_FILTER);
                 result = self.authzFilter.filterRequest(caller, request, context);
                 //finishing span
-                finishingSpan("Self.authzFilter", childSpanId);
+                finishingSpan(BALLERINA_AUTHZ_FILTER, childSpan_Req);
             }
             printDebug(KEY_AUTHZ_FILTER, "Returned with value: " + result);
             setLatency(startingTime, context, SECURITY_LATENCY_AUTHZ);
 
             //Finish `MyRootParentSpan` span.
-            finishingSpan("Authz_FilterRequest", spanId_req);
+            finishingSpan(AUTHZ_FILTER_REQUEST, spanId_req);
             return result;
         } 
         else {
             // Skip this filter is mutualSSL is enabled.
-            //Finish `MyRootParentSpan` span.
-            finishingSpan("Authz_FilterRequest", spanId_req);
+            //Finish span.
+            finishingSpan(AUTHZ_FILTER_REQUEST, spanId_req);
 
             return true;
         }
@@ -78,14 +78,14 @@ public type OAuthzFilter object {
 
     public function filterResponse(http:Response response, http:FilterContext context) returns boolean {
         //Start a new root span without attaching to the system span.
-        int|error|() spanId_res = startingSpan("Authz_FilterResponse");
+        int|error|() spanId_res = startingSpan(AUTHZ_FILTER_RESPONSE);
 
         int startingTime = getCurrentTime();
         boolean result = doAuthzFilterResponse(response, context);
         setLatency(startingTime, context, SECURITY_LATENCY_AUTHZ_RESPONSE);
 
         //Finish `MyRootParentSpan` span.
-        finishingSpan("Authz_FilterResponse", spanId_res);
+        finishingSpan(AUTHZ_FILTER_RESPONSE, spanId_res);
 
         return result;
     }

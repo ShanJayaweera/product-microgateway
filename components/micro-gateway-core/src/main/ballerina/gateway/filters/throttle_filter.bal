@@ -30,11 +30,11 @@ public type ThrottleFilter object {
 
     public function filterRequest(http:Caller caller, http:Request request, http:FilterContext context) returns boolean {
         //Start a span attaching to the system span.
-        int|error|() spanId_req = startingSpan("Throttle_FilterRequest");
-        //starting a Gauge metric
-        map<string> gaugeTags = gageTagDetails(request, context, "Throttling");
-        observe:Gauge|() localGauge = gaugeInitializing("Request_Gauge","Filter_Gauge", gaugeTags);
-        observe:Gauge|() localGauge_total = gaugeInitializing("Request_Gauge_Total","Gauge_Total",{ "Category":"Throttling"});
+        int|error|() spanId_req = startingSpan(THROTTLE_FILTER_REQUEST);
+        //Gauge metric initialization
+        map<string> gaugeTags = gageTagDetails(request, context, FIL_THROTTLING);
+        observe:Gauge|() localGauge = gaugeInitializing(PER_REQ_DURATION, REQ_FLTER_DURATION, gaugeTags);
+        observe:Gauge|() localGauge_total = gaugeInitializing(REQ_DURATION_TOTAL, FILTER_TOTAL_DURATION, {"Category":FIL_THROTTLING});
         int startingTime = getCurrentTime();
         checkOrSetMessageID(context);
         boolean result = doThrottleFilterRequest(caller, request, context, self.deployedPolicies);
@@ -43,7 +43,7 @@ public type ThrottleFilter object {
         UpdatingGauge(localGauge, latency);
         UpdatingGauge(localGauge_total, latency);
         //Finish span.
-        finishingSpan("Throttle_FilterRequest", spanId_req);
+        finishingSpan(THROTTLE_FILTER_REQUEST, spanId_req);
         return result;
     }
 

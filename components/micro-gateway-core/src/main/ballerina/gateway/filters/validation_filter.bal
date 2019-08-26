@@ -50,24 +50,24 @@ public type ValidationFilter object {
     public function filterRequest(http:Caller caller, http:Request request, http:FilterContext filterContext)
                         returns boolean {
         //Start a span attaching to the system span.
-        int|error|() spanId_req = startingSpan("Validation_FilterRequest");
+        int|error|() spanId_req = startingSpan(VALIDATION_FILTER_REQUEST);
         int startingTime = getCurrentTime();
         checkOrSetMessageID(filterContext);
         boolean result =  doValidationFilterRequest(caller, request, filterContext, self.openAPIs);
         setLatency(startingTime, filterContext, SECURITY_LATENCY_VALIDATION);
         //Finish span.
-        finishingSpan("Validation_FilterRequest", spanId_req);
+        finishingSpan(VALIDATION_FILTER_REQUEST, spanId_req);
         return result;
     }
 
     public function filterResponse(http:Response response, http:FilterContext context) returns boolean {
         //Start a span attaching to the system span.
-        int|error|() spanId_res = startingSpan("Validation_FilterResponse");
+        int|error|() spanId_res = startingSpan(VALIDATION_FILTER_RESPONSE);
         int startingTime = getCurrentTime();
         boolean result = doValidationFilterResponse(response, context, self.openAPIs);
         setLatency(startingTime, context, SECURITY_LATENCY_VALIDATION);
         //Finish span.
-        finishingSpan("Validation_FilterResponse", spanId_res);
+        finishingSpan(VALIDATION_FILTER_RESPONSE, spanId_res);
         return result;
     }
 
@@ -78,11 +78,11 @@ function doValidationFilterRequest(http:Caller caller, http:Request request, htt
     if (enableRequestValidation) {
         printDebug(KEY_VALIDATION_FILTER, "The Request validation is enabled..");
         //Start a span attaching to the system span.
-        int|error|() spanId_req = startingSpan("Getting Payload");
+        int|error|() spanId_payload = startingSpan(GETTTING_PAYLOAD);
         //getting the payload of the request
         var payload = request.getJsonPayload();
         //Finish span.
-        finishingSpan("Getting Payload", spanId_req);
+        finishingSpan(GETTTING_PAYLOAD, spanId_payload);
         isType = false;
         string serviceName = getServiceName(filterContext.serviceName);
         APIConfiguration? apiConfig = apiConfigAnnotationMap[serviceName];

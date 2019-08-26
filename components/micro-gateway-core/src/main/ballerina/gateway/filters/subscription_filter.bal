@@ -29,13 +29,13 @@ public type SubscriptionFilter object {
     public function filterRequest(http:Caller caller, http:Request request, http:FilterContext filterContext)
                         returns boolean {
         //Start a span attaching to the system span.
-        int|error|() spanId_req = startingSpan("Subscription_FilterRequest");
+        int|error|() spanId_req = startingSpan(SUBSCRIPTION_FILTER_REQUEST);
         int startingTime = getCurrentTime();
         checkOrSetMessageID(filterContext);
         boolean result = doSubscriptionFilterRequest(caller, request, filterContext);
         setLatency(startingTime, filterContext, SECURITY_LATENCY_SUBS);
         //Finish span.
-        finishingSpan("Subscription_FilterRequest", spanId_req);
+        finishingSpan(SUBSCRIPTION_FILTER_REQUEST, spanId_req);
         return result;
     }
 
@@ -97,10 +97,10 @@ function doSubscriptionFilterRequest(http:Caller caller, http:Request request, h
         if (decodedPayload.subscribedAPIs != null){
             printDebug(KEY_SUBSCRIPTION_FILTER, "subscribedAPIs claim found in the jwt");
             //Start a span attaching to the system span.
-            int|error|() spanId_req_1 = startingSpan("subscription_sub_Jsonconverting");
+            int|error|() spanId_Json = startingSpan(PAYLOAD_JSON_CONVERT);
             subscribedAPIList = json.convert(decodedPayload.subscribedAPIs);
             //Finish span.
-            finishingSpan("subscription_sub_Jsonconverting", spanId_req_1);
+            finishingSpan(PAYLOAD_JSON_CONVERT, spanId_Json);
             printDebug(KEY_SUBSCRIPTION_FILTER, "Subscribed APIs list : " + subscribedAPIList.toString());
             APIConfiguration? apiConfig = apiConfigAnnotationMap[getServiceName(filterContext.serviceName)];
             int l = subscribedAPIList.length();

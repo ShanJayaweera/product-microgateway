@@ -64,17 +64,21 @@ public function OAuthnAuthenticator.handle (http:Request req, http:FilterContext
                                    returns (APIKeyValidationDto| error) {
 
     //Start a span attaching to the system span.
-    int|error|() spanId_req = startingSpan("OAuthnAuthenticator.handle");
+    int|error|() spanId_Handle= startingSpan(OAUTHN_AUTHENTICATOR_HANDLE);
     APIRequestMetaDataDto apiKeyValidationRequestDto = getKeyValidationRequestObject(context);
+    //Start a span attaching to the system span.
+    int|error|() spanId_Authenticate = startingSpan(OAUTH_AUTHPROVIDER_AUTHENTICATE);
     APIKeyValidationDto | error apiKeyValidationDto = trap self.oAuthAuthenticator.authenticate(apiKeyValidationRequestDto);
+    //Finish span.
+    finishingSpan(OAUTH_AUTHPROVIDER_AUTHENTICATE, spanId_Authenticate);
     if (apiKeyValidationDto is error) {
         log:printError("Error occurred while getting key validation information for the access token", err = apiKeyValidationDto);
         //Finish span.
-        finishingSpan("OAuthnAuthenticator.handle", spanId_req);
+        finishingSpan(OAUTHN_AUTHENTICATOR_HANDLE, spanId_Handle);
         return apiKeyValidationDto;
     }
     //Finish span.
-    finishingSpan("OAuthnAuthenticator.handle", spanId_req);
+    finishingSpan(OAUTHN_AUTHENTICATOR_HANDLE, spanId_Handle);
     return apiKeyValidationDto;
 }
 
@@ -109,8 +113,6 @@ public type OAuthAuthProvider object {
 public function OAuthAuthProvider.authenticate (APIRequestMetaDataDto apiRequestMetaDataDto) returns
               (APIKeyValidationDto) {
 
-    //Start a span attaching to the system span.
-    int|error|() spanId_req = startingSpan("OAuthAuthProvider.authenticate");
     printDebug(KEY_OAUTH_PROVIDER, "Authenticating request using the request metadata.");
     string cacheKey = getAccessTokenCacheKey(apiRequestMetaDataDto);
     string accessToken = apiRequestMetaDataDto.accessToken;
@@ -130,8 +132,6 @@ public function OAuthAuthProvider.authenticate (APIRequestMetaDataDto apiRequest
                         self.gatewayCache.removeFromTokenCache(accessToken);
                         apiKeyValidationDtoFromcache.authorized = false;
                         printDebug(KEY_OAUTH_PROVIDER, "Token has expired");
-                        //Finish span.
-                        finishingSpan("OAuthAuthProvider.authenticate", spanId_req);
                         return apiKeyValidationDtoFromcache;
                     }
                     authorized = apiKeyValidationDtoFromcache.authorized;
@@ -149,8 +149,6 @@ public function OAuthAuthProvider.authenticate (APIRequestMetaDataDto apiRequest
                 var cacheAuthorizedValue = self.gatewayCache.retrieveFromInvalidTokenCache(accessToken);
                 if(cacheAuthorizedValue is APIKeyValidationDto) {
                     printDebug(KEY_OAUTH_PROVIDER, "Access token found in the invalid token cache.");
-                    //Finish span.
-                    finishingSpan("OAuthAuthProvider.authenticate", spanId_req);
                     return cacheAuthorizedValue;
                 } else {
                     printDebug(KEY_OAUTH_PROVIDER, "Access token not found in the invalid token cache."
@@ -167,23 +165,19 @@ public function OAuthAuthProvider.authenticate (APIRequestMetaDataDto apiRequest
         // set username
         runtime:getInvocationContext().userPrincipal.username = apiKeyValidationDto.endUserName;
     }
-    //Finish span.
-    finishingSpan("OAuthAuthProvider.authenticate", spanId_req);
     return apiKeyValidationDto;
 }
 
 public function OAuthAuthProvider.invokeKeyValidation(APIRequestMetaDataDto apiRequestMetaDataDto) returns (boolean,
             APIKeyValidationDto) {
-    //Start a span attaching to the system span.
-    int|error|() spanId_req = startingSpan("OAuthAuthProvider.invokeKeyValidation");
     APIKeyValidationDto apiKeyValidationDto = {};
     string accessToken = apiRequestMetaDataDto.accessToken;
     boolean authorized = false;
     //Start a new child span for the span.
-    int|error|() childSpanId = startingSpan("OAuthAuthProvider.doKeyValidation");
+    int|error|() spanId_KeyValidate = startingSpan(OAUTH_AUTHPROVIDER_DOKEYVALIDATION);
     xml|error keyValidationResponseXML = self.doKeyValidation(apiRequestMetaDataDto);
     //finishing span
-    finishingSpan("OAuthAuthProvider.doKeyValidation", childSpanId);
+    finishingSpan(OAUTH_AUTHPROVIDER_DOKEYVALIDATION, spanId_KeyValidate);
     if (keyValidationResponseXML is xml) {
         printTrace(KEY_OAUTH_PROVIDER, "key Validation json " + keyValidationResponseXML.getTextValue());
         xml keyValidationInfoXML = keyValidationResponseXML[soapenv:Body][xsd:validateKeyResponse][xsd:^"return"];
@@ -211,8 +205,6 @@ public function OAuthAuthProvider.invokeKeyValidation(APIRequestMetaDataDto apiR
         log:printError(errorMessage, err=keyValidationResponseXML);
         panic error(errorMessage);
     }
-    //Finish span.
-    finishingSpan("OAuthAuthProvider.invokeKeyValidation", spanId_req);
     return (authorized, apiKeyValidationDto);
 
 }

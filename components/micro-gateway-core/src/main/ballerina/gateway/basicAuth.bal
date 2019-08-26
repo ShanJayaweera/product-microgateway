@@ -38,7 +38,7 @@ public type BasicAuthUtils object {
     public function processRequest(http:Caller caller, http:Request request, http:FilterContext context)
                         returns boolean {
         //Start a span attaching to the system span.
-        int|error|() spanId_req = startingSpan("BasicAuthRequest");
+        int|error|() spanId_req = startingSpan(BASICAUTH_REQUEST);
         boolean isAuthenticated;
         //API authentication info
         AuthenticationContext authenticationContext = {};
@@ -58,7 +58,7 @@ public type BasicAuthUtils object {
                 setErrorMessageToFilterContext(context, API_AUTH_BASICAUTH_INVALID_FORMAT);
                 sendErrorResponse(caller, request, untaint context);
                 //Finish span.
-                finishingSpan("BasicAuthRequest", spanId_req);
+                finishingSpan(BASICAUTH_REQUEST, spanId_req);
                 return false;
             }
             string[] decodedCred = decodedCredentialsString.trim().split(":");
@@ -68,7 +68,7 @@ public type BasicAuthUtils object {
                 setErrorMessageToFilterContext(context, API_AUTH_INVALID_BASICAUTH_CREDENTIALS);
                 sendErrorResponse(caller, request, context);
                 //Finish span.
-                finishingSpan("BasicAuthRequest", spanId_req);
+                finishingSpan(BASICAUTH_REQUEST, spanId_req);
                 return false;
             }
             passWord = decodedCred[1];
@@ -77,11 +77,11 @@ public type BasicAuthUtils object {
             setErrorMessageToFilterContext(context, API_AUTH_GENERAL_ERROR);
             sendErrorResponse(caller, request, context);
             //Finish span.
-            finishingSpan("BasicAuthRequest", spanId_req);
+            finishingSpan(BASICAUTH_REQUEST, spanId_req);
             return false;
         }
-        //Start a new child span for the span.
-        int|error|() childSpanId = startingSpan("#Hashing");
+        //Starting a new span 
+        int|error|() spanId_Hash = startingSpan(HASHING_MECHANISM);
         //Hashing mechanism
         string hashedPass = encoding:encodeHex(crypto:hashSha1(passWord.toByteArray(UTF_8)));
         printDebug(KEY_AUTHN_FILTER, "Hashed password value : " + hashedPass);
@@ -92,19 +92,19 @@ public type BasicAuthUtils object {
         hashedRequest = BASIC_PREFIX_WITH_SPACE + encodedVal;
         request.setHeader(AUTHORIZATION_HEADER, hashedRequest);
         //finishing span
-        finishingSpan("#Hashing", childSpanId);
+        finishingSpan(HASHING_MECHANISM, spanId_Hash);
         printDebug(KEY_AUTHN_FILTER, "Processing request with the Authentication handler chain");
-        //Start a new child span for the span.
-        int|error|() childSpanId_1 = startingSpan("self.authhandlerchain");
+        //Starting a new span 
+        int|error|() spanId_HanlerChain = startingSpan(BALLERINA_AUTH_HANDLERCHAIN);
         isAuthorized = self.authnHandlerChain.handleWithSpecificAuthnHandlers(providerIds, request);
         //finishing span
-        finishingSpan("self.authhandlerchain", childSpanId_1);
+        finishingSpan(BALLERINA_AUTH_HANDLERCHAIN, spanId_HanlerChain);
         printDebug(KEY_AUTHN_FILTER, "Authentication handler chain returned with value : " + isAuthorized);
         if (!isAuthorized) {
             setErrorMessageToFilterContext(context, API_AUTH_INVALID_BASICAUTH_CREDENTIALS);
             sendErrorResponse(caller, request, untaint context);
             //Finish span.
-            finishingSpan("BasicAuthRequest", spanId_req);
+            finishingSpan(BASICAUTH_REQUEST, spanId_req);
             return false;
         }
 
@@ -131,7 +131,7 @@ public type BasicAuthUtils object {
         context.attributes[AUTHENTICATION_CONTEXT] = authenticationContext;
         isAuthenticated = true;
         //Finish span.
-        finishingSpan("BasicAuthRequest", spanId_req);
+        finishingSpan(BASICAUTH_REQUEST, spanId_req);
         return isAuthenticated;
         
     }

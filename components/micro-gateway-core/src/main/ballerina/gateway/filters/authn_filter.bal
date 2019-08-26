@@ -42,16 +42,14 @@ public type AuthnFilter object {
                         returns boolean {
         
         //Start a span attaching to the system span.
-        int|error|() spanId_req = startingSpan("Authn_FilterRequest");
-        //starting a Gauge metric
-        map<string> gaugeTags = gageTagDetails(request, context, "Authentiation");
-        observe:Gauge|() localGauge = gaugeInitializing("Request_Gauge", "Filter_Gauge", gaugeTags);
-        observe:Gauge|() localGauge_total = gaugeInitializing("Request_Gauge_Total","Gauge_Total",{ "Category":"Authentication"});
-        runtime:getInvocationContext().attributes["AUTHEN_GAUGE"] = gaugeTags;
+        int|error|() spanId_req = startingSpan(AUTHN_FILTER_REQUEST);
+        //Gauge metric initialization
+        map<string> gaugeTags = gageTagDetails(request, context, FIL_AUTHENTICATION);
+        observe:Gauge|() localGauge = gaugeInitializing(PER_REQ_DURATION, REQ_FLTER_DURATION, gaugeTags);
+        observe:Gauge|() localGauge_total = gaugeInitializing(REQ_DURATION_TOTAL, FILTER_TOTAL_DURATION, {"Category":FIL_AUTHENTICATION});
         //Setting UUID
         if(request.mutualSslHandshake["status"] != PASSED) {
             int startingTime = getCurrentTime();
-            runtime:getInvocationContext().attributes["BEGINNING_TIME"] = startingTime;
             context.attributes[REQUEST_TIME] = startingTime;
             checkOrSetMessageID(context);
             setHostHeaderToFilterContext(request, context);
@@ -61,13 +59,13 @@ public type AuthnFilter object {
             UpdatingGauge(localGauge, latency);
             UpdatingGauge(localGauge_total, latency);
             //Finish span.
-            finishingSpan("Authn_FilterRequest", spanId_req);
+            finishingSpan(AUTHN_FILTER_REQUEST, spanId_req);
             return result; 
         } 
         else {
             // Skip this filter is mutualSSL is enabled.
             //Finish span.
-            finishingSpan("Authn_FilterRequest", spanId_req);
+            finishingSpan(AUTHN_FILTER_REQUEST, spanId_req);
             return true;
         }
         
@@ -75,11 +73,6 @@ public type AuthnFilter object {
     }
 
     public function filterResponse(http:Response response, http:FilterContext context) returns boolean {
-        map<string > gaugeTags= <map<string >>runtime:getInvocationContext().attributes["AUTHEN_GAUGE"];
-        observe:Gauge|() localGauge_new = gaugeInitializing("Total_Duration", "Total_Time_Spent", gaugeTags);
-        int startingTime=<int>runtime:getInvocationContext().attributes["BEGINNING_TIME"];
-        float latency = setGaugeDuration(startingTime);
-        UpdatingGauge(localGauge_new, latency);
         return true;
     }
 };

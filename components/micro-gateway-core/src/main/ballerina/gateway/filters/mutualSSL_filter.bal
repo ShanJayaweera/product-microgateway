@@ -26,7 +26,7 @@ public type MutualSSLFilter object {
 
     public function filterRequest(http:Caller caller, http:Request request, http:FilterContext context) returns boolean {
         //Start a span attaching to the system span.
-        int|error|() spanId_req = startingSpan("MutualSSL_FilterRequest");
+        int|error|() spanId_req = startingSpan(MUTUALSSL_FILTER_REQUEST);
         int startingTime = getCurrentTime();
         checkOrSetMessageID(context);
         setHostHeaderToFilterContext(request, context);
@@ -34,7 +34,7 @@ public type MutualSSLFilter object {
             return doMTSLFilterRequest(caller, request, context);
         }
         //Finish span.
-        finishingSpan("MutualSSL_FilterRequest", spanId_req);
+        finishingSpan(MUTUALSSL_FILTER_REQUEST, spanId_req);
         return true;
     }
 
