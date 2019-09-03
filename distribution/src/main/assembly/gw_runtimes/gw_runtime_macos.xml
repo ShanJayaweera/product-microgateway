@@ -107,6 +107,13 @@
                 <include>org.wso2.am.microgw:org.wso2.micro.gateway.core:jar</include>
             </includes>
         </dependencySet>
+        <dependencySet>
+            <outputDirectory>wso2am-micro-gw-macos-${project.version}/lib/gateway</outputDirectory>
+            <scope>runtime</scope>
+            <includes>
+                <include>io.prometheus.jmx:jmx_prometheus_javaagent:jar</include>
+            </includes>
+        </dependencySet>
     </dependencySets>
 
 </assembly>
