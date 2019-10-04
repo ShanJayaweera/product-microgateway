@@ -23,9 +23,7 @@ import com.github.jknack.handlebars.context.JavaBeanValueResolver;
 import com.github.jknack.handlebars.context.MapValueResolver;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.parser.OpenAPIV3Parser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.wso2.apimgt.gateway.cli.constants.CliConstants;
+import org.wso2.apimgt.gateway.cli.constants.GatewayCliConstants;
 import org.wso2.apimgt.gateway.cli.constants.GeneratorConstants;
 import org.wso2.apimgt.gateway.cli.exception.BallerinaServiceGenException;
 import org.wso2.apimgt.gateway.cli.exception.CLIInternalException;
@@ -35,8 +33,8 @@ import org.wso2.apimgt.gateway.cli.model.rest.ext.ExtendedAPI;
 import org.wso2.apimgt.gateway.cli.model.template.GenSrcFile;
 import org.wso2.apimgt.gateway.cli.model.template.service.BallerinaService;
 import org.wso2.apimgt.gateway.cli.model.template.service.ListenerEndpoint;
-import org.wso2.apimgt.gateway.cli.utils.CmdUtils;
 import org.wso2.apimgt.gateway.cli.utils.CodegenUtils;
+import org.wso2.apimgt.gateway.cli.utils.GatewayCmdUtils;
 import org.wso2.apimgt.gateway.cli.utils.OpenAPICodegenUtils;
 
 import java.io.File;
@@ -55,7 +53,6 @@ import java.util.List;
  * This class generates Ballerina Services/Clients for a provided OAS definition.
  */
 public class CodeGenerator {
-    private static final Logger logger = LoggerFactory.getLogger(CodeGenerator.class);
     private static PrintStream outStream = System.out;
 
     /**
@@ -69,7 +66,7 @@ public class CodeGenerator {
     public void generate(String projectName, List<ExtendedAPI> apis, boolean overwrite)
             throws IOException, BallerinaServiceGenException {
 
-        String projectSrcPath = CmdUtils.getProjectGenSrcDirectoryPath((projectName));
+        String projectSrcPath = GatewayCmdUtils.getProjectGenSrcDirectoryPath((projectName));
         BallerinaService definitionContext;
 
         List<GenSrcFile> genFiles = new ArrayList<>();
@@ -77,7 +74,7 @@ public class CodeGenerator {
         for (ExtendedAPI api : apis) {
             outStream.println("ID for API " + api.getName() + " : " + api.getId());
             String apiHashId = HashUtils.generateAPIId(api.getName(), api.getVersion());
-            OpenAPI openApi = new OpenAPIV3Parser().read(CmdUtils
+            OpenAPI openApi = new OpenAPIV3Parser().read(GatewayCmdUtils
                     .getProjectGenSwaggerPath(projectName, apiHashId));
             OpenAPICodegenUtils.setAdditionalConfig(api);
             BallerinaService ballerinaService = new BallerinaService();
@@ -101,15 +98,7 @@ public class CodeGenerator {
         genFiles.add(generateMainBal(serviceList));
         genFiles.add(generateCommonEndpoints());
         CodegenUtils.writeGeneratedSources(genFiles, Paths.get(projectSrcPath), overwrite);
-
-        CmdUtils.copyFilesToSources(CmdUtils.getProjectExtensionsDirectoryPath(projectName)
-                        + File.separator + CliConstants.GW_DIST_EXTENSION_FILTER,
-                projectSrcPath + File.separator + CliConstants.GW_DIST_EXTENSION_FILTER);
-
-        CmdUtils.copyFilesToSources(CmdUtils.getProjectExtensionsDirectoryPath(projectName)
-                        + File.separator + CliConstants.GW_DIST_TOKEN_REVOCATION_EXTENSION,
-                projectSrcPath + File.separator + CliConstants.GW_DIST_TOKEN_REVOCATION_EXTENSION);
-
+        GatewayCmdUtils.copyFolder(GatewayCmdUtils.getProjectExtensionsDirectoryPath(projectName), projectSrcPath);
     }
 
 
@@ -122,63 +111,52 @@ public class CodeGenerator {
      */
     public void generate(String projectName, boolean overwrite)
             throws IOException {
-        String projectSrcPath = CmdUtils.getProjectTargetModulePath((projectName));
+        String projectSrcPath = GatewayCmdUtils.getProjectGenSrcDirectoryPath((projectName));
         List<GenSrcFile> genFiles = new ArrayList<>();
         List<BallerinaService> serviceList = new ArrayList<>();
         List<String> openAPIDirectoryLocations = new ArrayList<>();
-        String projectAPIDefGenLocation = CmdUtils.getProjectGenAPIDefinitionPath(projectName);
-        openAPIDirectoryLocations.add(CmdUtils.getProjectDirectoryPath(projectName) + File.separator
-                + CliConstants.PROJECT_API_DEFINITIONS_DIR);
-
-        if (Files.exists(Paths.get(projectAPIDefGenLocation))) {
+        String projectAPIDefGenLocation = GatewayCmdUtils.getProjectGenAPIDefinitionPath(projectName);
+        openAPIDirectoryLocations.add(GatewayCmdUtils.getProjectDirectoryPath(projectName) + File.separator
+                + GatewayCliConstants.PROJECT_API_DEFINITIONS_DIR);
+        if (Files.exists(Paths.get(projectAPIDefGenLocation)))
             openAPIDirectoryLocations.add(projectAPIDefGenLocation);
-        }
-
         //to store the available interceptors for validation purposes
         OpenAPICodegenUtils.setInterceptors(projectName);
         openAPIDirectoryLocations.forEach(openApiPath -> {
             try {
-                Files.walk(Paths.get(openApiPath)).filter(path -> {
-                    Path fileName = path.getFileName();
-                    return fileName != null &&
-                            (fileName.toString().endsWith(".json") || fileName.toString().endsWith(".yaml"));
-                }).forEach(path -> {
-                    try {
-                        OpenAPI openAPI = new OpenAPIV3Parser().read(path.toString());
-                        OpenAPICodegenUtils.validateOpenAPIDefinition(openAPI, path.toString());
-                        ExtendedAPI api = OpenAPICodegenUtils.generateAPIFromOpenAPIDef(openAPI, path);
-                        BallerinaService definitionContext;
-                        OpenAPICodegenUtils.setAdditionalConfigsDevFirst(api, openAPI, path.toString());
+                Files.walk(Paths.get(openApiPath)).filter(path -> (path
+                        .getFileName()
+                        .toString()
+                        .endsWith(".json") ||
+                        path.getFileName().toString().endsWith(".yaml")))
+                        .forEach( path -> {
+                            try {
+                                OpenAPI openAPI = new OpenAPIV3Parser().read(path.toString());
+                                OpenAPICodegenUtils.validateOpenAPIDefinition(openAPI, path.toString());
+                                ExtendedAPI api = OpenAPICodegenUtils.generateAPIFromOpenAPIDef(openAPI, path);
+                                BallerinaService definitionContext;
+                                OpenAPICodegenUtils.setAdditionalConfigsDevFirst(api, openAPI, path.toString());
 
-                        definitionContext = new BallerinaService().buildContext(openAPI, api);
-                        genFiles.add(generateService(definitionContext));
+                                definitionContext = new BallerinaService().buildContext(openAPI, api);
+                                genFiles.add(generateService(definitionContext));
 
-                        serviceList.add(definitionContext);
-                    } catch (BallerinaServiceGenException e) {
-                        throw new CLIRuntimeException("Swagger definition cannot be parsed to ballerina code", e);
-                    } catch (IOException e) {
-                        throw new CLIInternalException("File write operations failed during ballerina code "
-                                + "generation", e);
-                    }
-                });
+                                serviceList.add(definitionContext);
+                            } catch (BallerinaServiceGenException e) {
+                                throw new CLIRuntimeException("Swagger definition cannot be parsed to ballerina code",e);
+                            } catch (IOException e) {
+                                throw new CLIInternalException("File write operations failed during ballerina code "
+                                        + "generation", e);
+                            }
+                        });
             } catch (IOException e) {
                 throw new CLIInternalException("File write operations failed during ballerina code generation", e);
             }
         });
-
         genFiles.add(generateMainBal(serviceList));
         genFiles.add(generateOpenAPIJsonConstantsBal(serviceList));
         genFiles.add(generateCommonEndpoints());
         CodegenUtils.writeGeneratedSources(genFiles, Paths.get(projectSrcPath), overwrite);
-        CmdUtils.copyFilesToSources(CmdUtils.getProjectExtensionsDirectoryPath(projectName)
-                        + File.separator + CliConstants.GW_DIST_EXTENSION_FILTER,
-                projectSrcPath + File.separator + CliConstants.GW_DIST_EXTENSION_FILTER);
-        CmdUtils.copyFilesToSources(CmdUtils.getProjectExtensionsDirectoryPath(projectName)
-                        + File.separator + CliConstants.GW_DIST_TOKEN_REVOCATION_EXTENSION,
-                projectSrcPath + File.separator + CliConstants.GW_DIST_TOKEN_REVOCATION_EXTENSION);
-        CmdUtils.copyFilesToSources(CmdUtils.getProjectExtensionsDirectoryPath(projectName)
-                        + File.separator + CliConstants.GW_DIST_START_UP_EXTENSION,
-                projectSrcPath + File.separator + CliConstants.GW_DIST_START_UP_EXTENSION);
+        GatewayCmdUtils.copyFolder(GatewayCmdUtils.getProjectExtensionsDirectoryPath(projectName), projectSrcPath);
     }
 
     /**
@@ -217,7 +195,7 @@ public class CodeGenerator {
      * @throws IOException when code generation with specified templates fails
      */
     private GenSrcFile generateOpenAPIJsonConstantsBal(List<BallerinaService> services) throws IOException {
-        String srcFile = GeneratorConstants.OPEN_API_JSON_CONSTANTS + GeneratorConstants.JSON_EXTENSION;
+        String srcFile = GeneratorConstants.OPEN_API_JSON_CONSTANTS + GeneratorConstants.BALLERINA_EXTENSION;
         String mainContent = getContent(services, GeneratorConstants.OPEN_API_JSON_CONSTANTS);
         return new GenSrcFile(GenSrcFile.GenFileType.GEN_SRC, srcFile, mainContent);
     }
@@ -230,8 +208,8 @@ public class CodeGenerator {
      */
     private GenSrcFile generateCommonEndpoints() throws IOException {
         String srcFile = GeneratorConstants.LISTENERS + GeneratorConstants.BALLERINA_EXTENSION;
-        ListenerEndpoint listenerEndpoint = new ListenerEndpoint().buildContext();
-        String endpointContent = getContent(listenerEndpoint, GeneratorConstants.LISTENERS_TEMPLATE_NAME);
+        ListenerEndpoint listnerEndpoint = new ListenerEndpoint().buildContext();
+        String endpointContent = getContent(listnerEndpoint, GeneratorConstants.LISTENERS_TEMPLATE_NAME);
         return new GenSrcFile(GenSrcFile.GenFileType.GEN_SRC, srcFile, endpointContent);
     }
 
@@ -267,30 +245,24 @@ public class CodeGenerator {
         BallerinaService definitionContext;
 
         //apiId is not considered as the method is not functioning
-        String projectSrcPath = CmdUtils
+        String projectSrcPath = GatewayCmdUtils
                 .getProjectGenSwaggerPath(projectName, "");
 
-        String projectGrpcPath = CmdUtils.getProjectGrpcDirectoryPath();
+        String projectGrpcPath = GatewayCmdUtils.getProjectGrpcDirectoryPath();
         List<GenSrcFile> genFiles = new ArrayList<>();
         File dir = new File(projectGrpcPath);
         genFiles.add(generateCommonEndpoints());
 
         CodegenUtils.writeGeneratedSources(genFiles, Paths.get(projectSrcPath), overwrite);
 
-        CmdUtils.copyFilesToSources(CmdUtils.getFiltersFolderLocation() + File.separator
-                        + CliConstants.GW_DIST_EXTENSION_FILTER,
-                projectSrcPath + File.separator + CliConstants.GW_DIST_EXTENSION_FILTER);
-        CmdUtils.copyFilesToSources(CmdUtils.getFiltersFolderLocation() + File.separator
-                        + CliConstants.GW_DIST_TOKEN_REVOCATION_EXTENSION,
-                projectSrcPath + File.separator + CliConstants.GW_DIST_TOKEN_REVOCATION_EXTENSION);
+        GatewayCmdUtils.copyFilesToSources(GatewayCmdUtils.getFiltersFolderLocation() + File.separator
+                        + GatewayCliConstants.GW_DIST_EXTENSION_FILTER,
+                projectSrcPath + File.separator + GatewayCliConstants.GW_DIST_EXTENSION_FILTER);
+        GatewayCmdUtils.copyFilesToSources(GatewayCmdUtils.getFiltersFolderLocation() + File.separator
+                        + GatewayCliConstants.GW_DIST_TOKEN_REVOCATION_EXTENSION,
+                projectSrcPath + File.separator + GatewayCliConstants.GW_DIST_TOKEN_REVOCATION_EXTENSION);
 
-        File[] fileList = dir.listFiles();
-        if (fileList == null) {
-            // this is temporary. need to re-evaluate what to do in this case, when revisiting GRPC support
-            return;
-        }
-
-        for (File file : fileList) {
+        for (File file : dir.listFiles()) {
             String filePath = file.getAbsolutePath();
             String fileName = file.getName();
             FileSystem fileSys = FileSystems.getDefault();
@@ -299,10 +271,9 @@ public class CodeGenerator {
             Files.move(source, destination, StandardCopyOption.REPLACE_EXISTING);
         }
 
-        File temp = new File(CmdUtils.getProjectGrpcSoloDirectoryPath());
-        if (!dir.delete() || !temp.delete()) {
-            logger.debug("Failed to delete GRPC temp files");
-        }
+        File temp = new File(GatewayCmdUtils.getProjectGrpcSoloDirectoryPath());
+        dir.delete();
+        temp.delete();
     }
 
     /**

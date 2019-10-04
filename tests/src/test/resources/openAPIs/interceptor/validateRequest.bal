@@ -1,3 +1,4 @@
+import ballerina/io;
 import ballerina/http;
 
 public function validateRequest (http:Caller caller, http:Request req) {
@@ -6,5 +7,5 @@ public function validateRequest (http:Caller caller, http:Request req) {
                         message: "Successfully intercepted",
                         description: "Description"
                     } };
-  req.setJsonPayload(<@untainted> newPayload);
+  req.setJsonPayload(untaint newPayload);
 }

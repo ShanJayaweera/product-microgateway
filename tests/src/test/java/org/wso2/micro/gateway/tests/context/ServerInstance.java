@@ -132,7 +132,7 @@ public class ServerInstance implements Server {
      */
     public void startMicroGwServer(String balFile, String[] args) throws MicroGWTestException {
         String[] newArgs = {balFile};
-        newArgs = ArrayUtils.addAll(newArgs, args);
+        newArgs = ArrayUtils.addAll(args, newArgs);
         setArguments(newArgs);
         startServer();
     }
@@ -336,13 +336,7 @@ public class ServerInstance implements Server {
                 cmdArray = new String[]{"bash", scriptName};
                 String[] cmdArgs = Stream.concat(Arrays.stream(cmdArray), Arrays.stream(args))
                         .toArray(String[]::new);
-                if("true".equals(System.getenv("MGW_SERVER_DEBUG"))) {
-                    String[] debug = new String[] { "--b7a.log.level=TRACE" };
-                    String[] debugArray = Stream.concat(Arrays.stream(cmdArgs), Arrays.stream(debug)).toArray(String[]::new);
-                    process = Runtime.getRuntime().exec(debugArray, envp, commandDir);
-                } else {
-                    process = Runtime.getRuntime().exec(cmdArgs, envp, commandDir);
-                }
+                process = Runtime.getRuntime().exec(cmdArgs, envp, commandDir);
             }
         } catch (IOException e) {
             throw new MicroGWTestException("Error starting services", e);

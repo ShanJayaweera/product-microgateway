@@ -18,7 +18,7 @@ package org.wso2.apimgt.gateway.cli.utils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.wso2.apimgt.gateway.cli.constants.CliConstants;
+import org.wso2.apimgt.gateway.cli.constants.GatewayCliConstants;
 import org.wso2.apimgt.gateway.cli.exception.CLIInternalException;
 
 import java.io.File;
@@ -39,36 +39,38 @@ public class ToolkitLibExtractionUtils {
      */
     public static void extractPlatformAndRuntime() {
         try {
-            String libPath = CmdUtils.getCLILibPath();
-            String birPath = CliConstants.CLI_GATEWAY + File.separator + CliConstants.CLI_BIR_CACHE;
-            String breLibPath = CliConstants.CLI_BRE + File.separator + CliConstants.CLI_LIB;
+            String libPath = GatewayCmdUtils.getCLILibPath();
+            String baloPath = GatewayCliConstants.CLI_GATEWAY + File.separator + GatewayCliConstants.CLI_BALO;
+            String breLibPath = GatewayCliConstants.CLI_BRE + File.separator + GatewayCliConstants.CLI_LIB;
             String platformExtractedPath =
-                    CmdUtils.getCLILibPath() + File.separator + CliConstants.CLI_PLATFORM;
+                    GatewayCmdUtils.getCLILibPath() + File.separator + GatewayCliConstants.CLI_PLATFORM;
 
-            extractBallerinaDist(platformExtractedPath, libPath, birPath, breLibPath, true);
+            extractBallerinaDist(platformExtractedPath, libPath, baloPath, breLibPath, true);
         } catch (IOException e) {
-            String message = "Error while unzipping platform while project setup";
+            String message = "Error while unzipping platform and runtime while project setup";
             LOGGER.error(message, e);
             throw new CLIInternalException(message);
         }
     }
 
-    private static void extractBallerinaDist(String destination, String libPath, String birPath, String breLibPath,
+    private static void extractBallerinaDist(String destination, String libPath, String baloPath, String breLibPath,
                                              Boolean isAddToClasspath) throws IOException {
         if (!Files.exists(Paths.get(destination))) {
             OUT.println("Initializing Toolkit...");
-            ZipUtils.unzip(destination + CliConstants.EXTENSION_ZIP, destination,
+            ZipUtils.unzip(destination + GatewayCliConstants.EXTENSION_ZIP, destination,
                     isAddToClasspath);
 
-            // Copy bir to the platform
-            CmdUtils.copyFolder(libPath + File.separator + birPath,
-                    destination + File.separator + CliConstants.CLI_BIR_CACHE);
+            // Copy balo to the platform
+            GatewayCmdUtils.copyFolder(libPath + File.separator + baloPath,
+                    destination + File.separator + GatewayCliConstants.CLI_LIB + File.separator
+                            + GatewayCliConstants.CLI_REPO);
 
             // Copy gateway jars to platform
-            CmdUtils.copyFolder(libPath + File.separator + CliConstants.CLI_GATEWAY + File.separator
-                    + CliConstants.CLI_PLATFORM, destination + File.separator + breLibPath);
-
-
+            GatewayCmdUtils.copyFolder(libPath + File.separator + GatewayCliConstants.CLI_GATEWAY + File.separator
+                    + GatewayCliConstants.CLI_PLATFORM, destination + File.separator + breLibPath);
+            //todo: remove this segment in next release
+            new File(destination + File.separator + breLibPath + File.separator +
+                    "swagger-to-ballerina-generator-0.990.5.jar").delete();
         }
     }
 }

@@ -25,6 +25,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wso2.apimgt.gateway.cli.config.TOMLConfigParser;
+import org.wso2.apimgt.gateway.cli.constants.GatewayCliConstants;
 import org.wso2.apimgt.gateway.cli.constants.RESTServiceConstants;
 import org.wso2.apimgt.gateway.cli.exception.CLIInternalException;
 import org.wso2.apimgt.gateway.cli.exception.CLIRuntimeException;
@@ -39,7 +40,7 @@ import org.wso2.apimgt.gateway.cli.oauth.OAuthService;
 import org.wso2.apimgt.gateway.cli.oauth.OAuthServiceImpl;
 import org.wso2.apimgt.gateway.cli.rest.RESTAPIService;
 import org.wso2.apimgt.gateway.cli.rest.RESTAPIServiceImpl;
-import org.wso2.apimgt.gateway.cli.utils.CmdUtils;
+import org.wso2.apimgt.gateway.cli.utils.GatewayCmdUtils;
 import org.wso2.apimgt.gateway.cli.utils.ToolkitLibExtractionUtils;
 
 import java.io.File;
@@ -56,7 +57,7 @@ import java.util.List;
  * This class represents the "import" command and it pull the swagger and generate the source code
  */
 @Parameters(commandNames = "import", commandDescription = "pull APIs from API Publisher")
-public class ImportCmd implements LauncherCmd {
+public class ImportCmd implements GatewayLauncherCmd {
     private static final Logger logger = LoggerFactory.getLogger(ImportCmd.class);
     private static PrintStream outStream = System.out;
 
@@ -121,20 +122,20 @@ public class ImportCmd implements LauncherCmd {
             return;
         }
         String clientID;
-        File projectLocation = new File(CmdUtils.getProjectDirectoryPath(projectName));
+        File projectLocation = new File(GatewayCmdUtils.getProjectDirectoryPath(projectName));
 
         if (!projectLocation.exists()) {
-            throw CmdUtils.createUsageException("Project " + projectName + " does not exist. " +
-                    "Please execute the command '" + "micro-gw init " + projectName + "' to initialize the project.");
+            throw GatewayCmdUtils.createUsageException("Project " + projectName + " does not exist. Please execute " +
+                    "the command 'micro-gw init " + projectName + "' to initialize the project.");
         }
         //extract the ballerina platform and runtime
         ToolkitLibExtractionUtils.extractPlatformAndRuntime();
         if (StringUtils.isEmpty(toolkitConfigPath)) {
-            toolkitConfigPath = CmdUtils.getMainConfigLocation();
+            toolkitConfigPath = GatewayCmdUtils.getMainConfigLocation();
         }
 
         init(toolkitConfigPath);
-        Config config = CmdUtils.getConfig();
+        Config config = GatewayCmdUtils.getConfig();
         isOverwriteRequired = false;
 
         validateAPIGetRequestParams(label, apiName, version);
@@ -143,9 +144,9 @@ public class ImportCmd implements LauncherCmd {
         if (StringUtils.isEmpty(configuredUser)) {
             if (StringUtils.isEmpty(username)) {
                 isOverwriteRequired = true;
-                if ((username = CmdUtils.promptForTextInput(outStream, "Enter Username: "))
+                if ((username = GatewayCmdUtils.promptForTextInput(outStream, "Enter Username: "))
                         .trim().isEmpty()) {
-                    throw CmdUtils.createUsageException("Micro gateway init failed: empty username.");
+                    throw GatewayCmdUtils.createUsageException("Micro gateway init failed: empty username.");
                 }
             }
         } else {
@@ -160,7 +161,7 @@ public class ImportCmd implements LauncherCmd {
                     password = promptForPasswordInput(
                             "Password can't be empty; enter password for " + username + ": ");
                     if (password.trim().isEmpty()) {
-                        throw CmdUtils.createUsageException("Micro gateway init failed: empty password.");
+                        throw GatewayCmdUtils.createUsageException("Micro gateway init failed: empty password.");
                     }
                 }
             }
@@ -175,9 +176,8 @@ public class ImportCmd implements LauncherCmd {
         if (StringUtils.isEmpty(configuredTrustStore)) {
             if (StringUtils.isEmpty(trustStoreLocation)) {
                 isOverwriteRequired = true;
-                String tsPrompt = "Enter Trust store location: [" + RESTServiceConstants.DEFAULT_TRUSTSTORE_PATH + ']';
-                String trustStorePath = CmdUtils.promptForTextInput(outStream, tsPrompt);
-                if (trustStorePath.trim().isEmpty()) {
+                if ((trustStoreLocation = GatewayCmdUtils.promptForTextInput(outStream,
+                        "Enter Trust store location: [" + RESTServiceConstants.DEFAULT_TRUSTSTORE_PATH + "]")).trim().isEmpty()) {
                     trustStoreLocation = RESTServiceConstants.DEFAULT_TRUSTSTORE_PATH;
                 }
             }
@@ -192,7 +192,7 @@ public class ImportCmd implements LauncherCmd {
             configuredTrustStorePass = null;
         } else {
             try {
-                configuredTrustStorePass = CmdUtils.decrypt(encryptedPass, password);
+                configuredTrustStorePass = GatewayCmdUtils.decrypt(encryptedPass, password);
             } catch (CliLauncherException e) {
                 //different password used to encrypt
                 configuredTrustStorePass = null;
@@ -214,7 +214,7 @@ public class ImportCmd implements LauncherCmd {
 
         File trustStoreFile = new File(trustStoreLocation);
         if (!trustStoreFile.isAbsolute()) {
-            trustStoreLocation = CmdUtils.getUnixPath(CmdUtils.getCLIHome() + File.separator
+            trustStoreLocation = GatewayCmdUtils.getUnixPath(GatewayCmdUtils.getCLIHome() + File.separator
                     + trustStoreLocation);
         }
         trustStoreFile = new File(trustStoreLocation);
@@ -234,7 +234,7 @@ public class ImportCmd implements LauncherCmd {
         String encryptedSecret = config.getToken().getClientSecret();
         if (!StringUtils.isEmpty(clientID.trim()) && !StringUtils.isEmpty(encryptedSecret.trim())) {
             try {
-                clientSecret = CmdUtils.decrypt(encryptedSecret, password);
+                clientSecret = GatewayCmdUtils.decrypt(encryptedSecret, password);
             } catch (CliLauncherException e) {
                 //different password used to encrypt
                 clientSecret = null;
@@ -275,7 +275,7 @@ public class ImportCmd implements LauncherCmd {
 
         //delete the folder if an exception is thrown in following steps
         try {
-            CmdUtils.saveSwaggerDefinitionForMultipleAPIs(projectName, apis);
+            GatewayCmdUtils.saveSwaggerDefinitionForMultipleAPIs(projectName, apis);
         } catch (Exception e) {
             throw new CLIInternalException("Exception occurred during codeGeneration process");
         }
@@ -288,8 +288,8 @@ public class ImportCmd implements LauncherCmd {
             client.setHttpRequestTimeout(1000000);
             newConfig.setClient(client);
 
-            String encryptedCS = CmdUtils.encrypt(clientSecret, password);
-            String encryptedTrustStorePass = CmdUtils.encrypt(trustStorePassword, password);
+            String encryptedCS = GatewayCmdUtils.encrypt(clientSecret, password);
+            String encryptedTrustStorePass = GatewayCmdUtils.encrypt(trustStorePassword, password);
             Token token = configTokenValues
                     .setUsername(username)
                     .setClientId(clientID)
@@ -298,9 +298,12 @@ public class ImportCmd implements LauncherCmd {
                     .setTrustStorePassword(encryptedTrustStorePass)
                     .build();
             newConfig.setToken(token);
-            newConfig.setCorsConfiguration(CmdUtils.getDefaultCorsConfig());
-            CmdUtils.saveConfig(newConfig, toolkitConfigPath);
+            newConfig.setCorsConfiguration(GatewayCmdUtils.getDefaultCorsConfig());
+            GatewayCmdUtils.saveConfig(newConfig, toolkitConfigPath);
         }
+
+        outStream.println("\n(Use \"" + GatewayCliConstants.MICRO_GW + ' ' + GatewayCliCommands.BUILD + ' '
+                + projectName + "\" to build the project)");
     }
 
     @Override
@@ -323,7 +326,7 @@ public class ImportCmd implements LauncherCmd {
             Path configurationFile = Paths.get(configPath);
             if (Files.exists(configurationFile)) {
                 Config config = TOMLConfigParser.parse(configPath, Config.class);
-                CmdUtils.setConfig(config);
+                GatewayCmdUtils.setConfig(config);
             } else {
                 logger.error("Configuration: {} Not found.", configPath);
                 throw new CLIInternalException("Error occurred while loading configurations.");
@@ -348,11 +351,8 @@ public class ImportCmd implements LauncherCmd {
                 StringUtils.isNotEmpty(label) && (StringUtils.isNotEmpty(apiName) || StringUtils.isNotEmpty(version)) ||
                 (StringUtils.isEmpty(apiName) && StringUtils.isNotEmpty(version)) ||
                 (StringUtils.isNotEmpty(apiName) && StringUtils.isEmpty(version))) {
-            throw CmdUtils.createUsageException(
-                    "Either label (-l <label>) or API name (-a <api-name>) with version (-v <version>) "
-                            + "should be provided."
-                            + "\n\nEx:\tmicro-gw setup accounts-project -l accounts"
-                            + "\n\tmicro-gw setup pizzashack-project -a Pizzashack -v 1.0.0");
+            throw GatewayCmdUtils.createUsageException(
+                    "Missing \"-l <label>\" or \"-a <api-name> -v <version>\" parameters");
         }
     }
 
@@ -425,7 +425,7 @@ public class ImportCmd implements LauncherCmd {
                 }
 
                 //cli command to ask user to accept the baseURL or enter a new base url
-                String userInputURL = getBaseURLFromCmd(baseURL);
+                String userInputURL = getBaseURLfromCmd(baseURL);
                 if (!userInputURL.isEmpty()) {
                     baseURL = userInputURL;
                     isOverwriteRequired = true;
@@ -440,7 +440,7 @@ public class ImportCmd implements LauncherCmd {
             if (StringUtils.isEmpty(restVersion)) {
                 restVersion = RESTServiceConstants.CONFIG_REST_VERSION;
             }
-            informRestVersionToUser(restVersion);
+            informRestVersiontoUser(restVersion);
             configTokenValues.setRestVersion(restVersion);
         }
 
@@ -485,7 +485,7 @@ public class ImportCmd implements LauncherCmd {
      *
      * @param restVersion API Manager's REST version
      */
-    private void informRestVersionToUser(String restVersion) {
+    private void informRestVersiontoUser(String restVersion) {
         outStream.println(
                 "You are using REST version - " + restVersion + " of API Manager. (If you want to change this, go to "
                         + "<MICROGW_HOME>/conf/toolkit-config.toml)");
@@ -494,7 +494,7 @@ public class ImportCmd implements LauncherCmd {
     /**
      * prompt to get the base URL
      */
-    private String getBaseURLFromCmd(String defaultBaseURL) {
+    private String getBaseURLfromCmd(String defaultBaseURL) {
         String userInputURL;
         userInputURL = promptForTextInput("Enter APIM base URL [" + defaultBaseURL + "]: ").trim();
         return userInputURL;

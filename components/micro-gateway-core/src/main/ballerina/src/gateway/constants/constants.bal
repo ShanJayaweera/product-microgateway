@@ -27,7 +27,7 @@
  public const string SERVICE_ANN_NAME = "ServiceConfig";
  public const string API_ANN_NAME = "API";
  public const string SKIP_FILTERS_ANN_NAME = "SkipFilters";
- public const string GATEWAY_ANN_PACKAGE = "wso2/gateway:3.1.0";
+ public const string GATEWAY_ANN_PACKAGE = "wso2/gateway";
 
  public const string BASIC_PREFIX_WITH_SPACE = "Basic ";
  public const string AUTHORIZATION_HEADER = "Authorization";
@@ -47,13 +47,13 @@
  public const string KEY_VALIDATION_RESPONSE = "KEY_VALIDATION_RESPONSE";
  public const string AUTHENTICATION_CONTEXT = "AUTHENTICATION_CONTEXT";
  public const string SUPER_TENANT_DOMAIN_NAME = "carbon.super";
- public const int SUPER_TENANT_ID = -1234;
+ public int SUPER_TENANT_ID = -1234;
  public const string THROTTLE_KEY = "throttleKey";
  public const string RESOURCE_TIER_ANN_PACKAGE = "ballerina.gateway";
  public const string RESOURCE_TIER_ANN_NAME = "RateLimit";
- public const string RESOURCE_CONFIGURATION_ANN_NAME = "Resource";
  public const string UNLIMITED_TIER = "Unlimited";
  public const string UNAUTHENTICATED_TIER = "Unauthenticated";
+ public const string DEFAULT_SUBSCRIPTION_TIER = "Default";
  public const string END_USER_ANONYMOUS = "anonymous";
  public const string ANONYMOUS_USER_TENANT_DOMAIN = "anonymous";
  public const string ANONYMOUS_APP_NAME = "anonymous";
@@ -143,8 +143,7 @@
  public const string TS_RESPONSE_IN = "timeStampResponseIn";
  public const string API_USAGE_PATH = "api.usage.data.path";
  public const string API_USAGE_DIR = "api-usage-data";
- public const string FILE_UPLOAD_TASK = "taskUploadFiles";
- public const string INITIAL_DELAY = "initialDelayInMillis";
+ public const string FILE_UPLOAD_TASK = "task.uploadFiles";
  public const string DESTINATION = "destination";
 
 //validation_filter related constatnts
@@ -198,8 +197,8 @@
  public const string LISTENER_CONF_HOST = "host";
  public const string LISTENER_CONF_HTTP_PORT = "httpPort";
  public const string LISTENER_CONF_HTTPS_PORT = "httpsPort";
- public const string LISTENER_CONF_KEY_STORE_PATH = "keyStorePath";
- public const string LISTENER_CONF_KEY_STORE_PASSWORD = "keyStorePassword";
+ public const string LISTENER_CONF_KEY_STORE_PATH = "keyStore.path";
+ public const string LISTENER_CONF_KEY_STORE_PASSWORD = "keyStore.password";
  public const string TOKEN_LISTENER_PORT = "tokenListenerPort";
  public const string FILTERS = "filters";
 
@@ -217,14 +216,14 @@
  public const string ISSUER = "issuer";
  public const string AUDIENCE = "audience";
  public const string CERTIFICATE_ALIAS = "certificateAlias";
- public const string TRUST_STORE_PATH = "trustStorePath";
- public const string TRUST_STORE_PASSWORD = "trustStorePassword";
+ public const string TRUST_STORE_PATH = "trustStore.path";
+ public const string TRUST_STORE_PASSWORD = "trustStore.password";
 
  public const string CACHING_ID = "caching";
  public const string TOKEN_CACHE_ENABLED = "enabled";
- public const string TOKEN_CACHE_EXPIRY = "tokenCacheExpiryTime";
- public const string TOKEN_CACHE_CAPACITY = "tokenCacheCapacity";
- public const string TOKEN_CACHE_EVICTION_FACTOR = "tokenCacheEvictionFactor";
+ public const string TOKEN_CACHE_EXPIRY = "tokenCache.expiryTime";
+ public const string TOKEN_CACHE_CAPACITY = "tokenCache.capacity";
+ public const string TOKEN_CACHE_EVICTION_FACTOR = "tokenCache.evictionFactor";
 
  public const string JWT_CONFIG_INSTANCE_ID = "jwtConfig";
  public const string JWT_HEADER = "header";
@@ -260,8 +259,6 @@
  public const string PERSISTENT_MESSAGE_USERNAME = "username";
  public const string PERSISTENT_MESSAGE_PASSWORD = "password";
 
- public const string CONFIG_USER_SECTION = "b7a.users";
-
 // end of config constants
 
  public const string IS_THROTTLED = "isThrottled";
@@ -275,11 +272,11 @@
  public  const string UNPROCESSABLE_ENTITY_DESCRIPTION = "Unable to process the given entity. Please check whether the provided entity is correct.";
 
 // http codes
- public const int INTERNAL_SERVER_ERROR = 500;
- public const int FORBIDDEN = 403;
- public const int UNAUTHORIZED = 401;
- public const int THROTTLED_OUT = 429;
- public const int UNPROCESSABLE_ENTITY = 422;
+ public int INTERNAL_SERVER_ERROR = 500;
+ public int FORBIDDEN = 403;
+ public int UNAUTHORIZED = 401;
+ public int THROTTLED_OUT = 429;
+ public int UNPROCESSABLE_ENTITY = 422;
 
 // end of http codes
 
@@ -294,7 +291,6 @@
 
 // logging keys
  const string KEY_GW_LISTNER = "APIGatewayListener";
- const string KEY_PRE_AUTHN_FILTER = "PreAuthnFilter";
  const string KEY_AUTHN_FILTER = "AuthnFilter";
  const string KEY_AUTHZ_FILTER = "AuthzFilter";
  const string KEY_SUBSCRIPTION_FILTER = "SubscriptionFilter";
@@ -315,8 +311,9 @@
  const string KEY_JWT_AUTH_PROVIDER = "JWTAuthProvider";
 
 
- public const int DEFAULT_LISTENER_TIMEOUT = 120000; //2 mins
- public const int DEFAULT_ETCD_TRIGGER_TIME = 10000; //10 seconds
+ public int DEFAULT_LISTENER_TIMEOUT = 120000; //2 mins
+ public int DEFAULT_ETCD_TRIGGER_TIME = 10000; //10 seconds
+ public const string DEFAULT_ETCD_BASE_PATH = "/v3alpha";
 
 //jwt claims
  const string APPLICATION = "application";

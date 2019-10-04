@@ -35,6 +35,8 @@ import org.wso2.micro.gateway.tests.util.EtcdClient;
 import org.wso2.micro.gateway.tests.util.HttpResponse;
 import org.wso2.micro.gateway.tests.util.TestConstant;
 
+import java.io.File;
+
 public class EtcdSupportTestCase extends BaseTestCase {
     private String jwtTokenProd, jwtTokenSand, balPath, configPath;
     private String etcdUrlParameter;
@@ -111,7 +113,7 @@ public class EtcdSupportTestCase extends BaseTestCase {
         cliExecutor = CLIExecutor.getInstance();
         cliExecutor.generate(label, project);
 
-        balPath = CLIExecutor.getInstance().getLabelJar(project);
+        balPath = CLIExecutor.getInstance().getLabelBalx(project);
 
         encodeValuesToBase64();
         prepareConfigValues();
